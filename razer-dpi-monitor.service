@@ -1,0 +1,12 @@
+[Unit]
+Description=Razer Cobra DPI On-Screen Display (OSD) Monitor
+After=openrazer-daemon.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/razer-cobra-linux/razer-dpi-monitor.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
