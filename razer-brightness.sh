@@ -27,7 +27,7 @@ show_osd() {
         1)   text="Razer Cobra: Dim (1%)" ;;
         *)   text="Razer Cobra: Off" ;;
     esac
-    qdbus6 org.kde.plasmashell /org/kde/osdService org.kde.osdService.showText "input-mouse" "$text" 2>/dev/null
+    qdbus6 org.kde.plasmashell /org/kde/osdService org.kde.osdService.showText "razer-cobra" "$text" 2>/dev/null
 }
 
 ACTION="$1"
