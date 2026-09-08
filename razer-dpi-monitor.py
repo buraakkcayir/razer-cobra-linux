@@ -12,7 +12,7 @@ except ImportError:
 def show_osd(text):
     subprocess.run([
         "qdbus6", "org.kde.plasmashell", "/org/kde/osdService",
-        "org.kde.osdService.showText", "input-mouse", text
+        "org.kde.osdService.showText", "razer-cobra", text
     ], stderr=subprocess.DEVNULL)
 
 def main():
