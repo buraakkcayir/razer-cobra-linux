@@ -1,0 +1,24 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Validate shell syntax
+        run: bash -n razer-brightness.sh
+      - name: Validate Python syntax
+        run: python -m py_compile razer-dpi-monitor.py
+      - name: Validate systemd unit
+        run: systemd-analyze verify razer-dpi-monitor.service
