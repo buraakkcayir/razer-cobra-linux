@@ -4,7 +4,7 @@ After=openrazer-daemon.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 %h/razer-cobra-linux/razer-dpi-monitor.py
+ExecStart=/usr/bin/python3 %h/.local/lib/razer-cobra-linux/razer-dpi-monitor.py
 Restart=always
 RestartSec=3
 
