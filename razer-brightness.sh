@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 
 STATE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/razer_brightness"
-CLI_PATH=$(which polychromatic-cli 2>/dev/null)
+CLI_PATH=$(command -v polychromatic-cli || true)
+QDBUS_PATH=$(command -v qdbus6 || true)
 
 if [ -z "$CLI_PATH" ]; then
     echo "Error: polychromatic-cli not found. Please install polychromatic." >&2
     exit 1
 fi
+if [ -z "$QDBUS_PATH" ]; then
+    echo "Error: qdbus6 not found. Install KDE Plasma's Qt D-Bus tools." >&2
+    exit 1
+fi
 
 get_cur_brightness() {
     if [ -f "$STATE_FILE" ]; then
-        local val=$(cat "$STATE_FILE")
+        local val
+        val=$(cat "$STATE_FILE")
         if [[ "$val" =~ ^[0-9]+$ ]]; then echo "$val"; else echo 100; fi
     else
         echo 100
@@ -27,7 +33,7 @@ show_osd() {
         1)   text="Razer Cobra: Dim (1%)" ;;
         *)   text="Razer Cobra: Off" ;;
     esac
-    qdbus6 org.kde.plasmashell /org/kde/osdService org.kde.osdService.showText "razer-cobra" "$text" 2>/dev/null
+    "$QDBUS_PATH" org.kde.plasmashell /org/kde/osdService org.kde.osdService.showText "razer-cobra" "$text"
 }
 
 ACTION="$1"
@@ -49,13 +55,18 @@ case "$ACTION" in
         fi
         ;;
     restore)
-        echo "Startup routine (enforcing 100% brightness) started: $(date)" > /tmp/razer_debug.log
         NEW=100
         for i in {1..3}; do
             sleep 10
-            $CLI_PATH -o brightness -p "$NEW" >/dev/null 2>&1
-            echo "Attempt $i completed (Target: $NEW)" >> /tmp/razer_debug.log
+            if ! "$CLI_PATH" -o brightness -p "$NEW"; then
+                echo "Error: failed to set brightness during restore attempt $i." >&2
+                exit 1
+            fi
         done
+        mkdir -p "$(dirname "$STATE_FILE")" || {
+            echo "Error: cannot create state directory: $(dirname "$STATE_FILE")" >&2
+            exit 1
+        }
         echo "$NEW" > "$STATE_FILE"
         exit 0
         ;;
@@ -65,6 +76,16 @@ case "$ACTION" in
         ;;
 esac
 
-$CLI_PATH -o brightness -p "$NEW" >/dev/null 2>&1
-echo "$NEW" > "$STATE_FILE"
+if ! "$CLI_PATH" -o brightness -p "$NEW"; then
+    echo "Error: failed to set brightness to $NEW%." >&2
+    exit 1
+fi
+mkdir -p "$(dirname "$STATE_FILE")" || {
+    echo "Error: cannot create state directory: $(dirname "$STATE_FILE")" >&2
+    exit 1
+}
+if ! echo "$NEW" > "$STATE_FILE"; then
+    echo "Error: cannot write brightness state to $STATE_FILE." >&2
+    exit 1
+fi
 show_osd "$NEW"
