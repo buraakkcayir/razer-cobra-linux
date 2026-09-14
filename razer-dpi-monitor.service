@@ -4,9 +4,10 @@ After=openrazer-daemon.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 %h/.local/lib/razer-cobra-linux/razer-dpi-monitor.py
+ExecStart=/usr/bin/env python3 %h/.local/lib/razer-cobra-linux/razer-dpi-monitor.py
 Restart=always
 RestartSec=3
+Environment=RAZER_DPI_POLL_INTERVAL=0.25
 
 [Install]
 WantedBy=default.target

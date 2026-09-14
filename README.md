@@ -60,14 +60,34 @@ provided systemd unit:
 ```bash
 install -Dm755 razer-dpi-monitor.py \
   "$HOME/.local/lib/razer-cobra-linux/razer-dpi-monitor.py"
+install -Dm755 razer-brightness.sh \
+  "$HOME/.local/lib/razer-cobra-linux/razer-brightness.sh"
+install -Dm755 razer-brightness.sh \
+  "$HOME/.local/bin/razer-brightness.sh"
+install -Dm644 razer-restore.desktop \
+  "$HOME/.config/autostart/razer-restore.desktop"
+install -Dm644 razer-brightness-up.desktop \
+  "$HOME/.local/share/applications/razer-brightness-up.desktop"
+install -Dm644 razer-brightness-down.desktop \
+  "$HOME/.local/share/applications/razer-brightness-down.desktop"
+install -Dm644 net.local.razer-brightness.sh.desktop \
+  "$HOME/.local/share/applications/net.local.razer-brightness.sh.desktop"
+install -Dm644 net.local.razer-brightness.sh-2.desktop \
+  "$HOME/.local/share/applications/net.local.razer-brightness.sh-2.desktop"
+install -Dm644 razer-cobra.svg \
+  "$HOME/.local/share/icons/hicolor/scalable/devices/razer-cobra.svg"
 install -Dm644 razer-dpi-monitor.service \
   "$HOME/.config/systemd/user/razer-dpi-monitor.service"
 systemctl --user daemon-reload
+systemctl --user enable --now openrazer-daemon.service
 systemctl --user enable --now razer-dpi-monitor.service
 ```
 
-The service is intentionally installed as a user service. It does not run as
-root and does not modify system-wide files.
+The DPI monitor is intentionally installed as a user service. It does not
+run as root and does not modify system-wide files. The included KDE autostart
+entry runs the tested `$HOME/.local/bin/razer-brightness.sh restore` command
+after login. The command waits 10 seconds before each of three attempts, so
+OpenRazer and the mouse can finish initializing before brightness is restored.
 
 ## Usage
 
@@ -80,19 +100,44 @@ Run the brightness command from the repository directory:
 ```
 
 `inc` is an alias for `up` and `dec` is an alias for `down`. Configure KDE
-custom shortcuts with the absolute path to your clone, replacing the example
-path below:
+global shortcuts under **System Settings > Keyboard > Shortcuts > Custom
+Shortcuts**. Assign `Razer Cobra Brightness Up` to
+`Shift+Volume Up` and `Razer Cobra Brightness Down` to
+`Shift+Volume Down`.
+The installed desktop entries call `$HOME/.local/bin/razer-brightness.sh`;
+they do not configure or override shortcuts automatically.
 
-```text
-/path/to/razer-cobra-linux/razer-brightness.sh up
-/path/to/razer-cobra-linux/razer-brightness.sh down
+On this keyboard, `Fn+Up` and `Fn+Down` are reported as volume controls, so
+KDE displays them as `Volume Up` and `Volume Down`. Hold `Shift` while
+pressing those keys when recording the shortcuts.
+If KDE's built-in `Shift+Volume Up` and `Shift+Volume Down` actions are still
+assigned to small volume changes, remove those assignments first to avoid a
+shortcut conflict.
+
+DPI changes are intentionally not mapped to keyboard shortcuts. The Razer Cobra
+mouse's physical DPI button remains the DPI control.
+
+The equivalent commands, if you prefer to create custom shortcuts manually,
+are:
+
+```bash
+razer-brightness.sh up
+razer-brightness.sh down
 ```
 
-To restore 100% brightness after login, run the following command from KDE
-autostart or another user-session mechanism:
+To restore 100% brightness manually:
 
-```text
-/path/to/razer-cobra-linux/razer-brightness.sh restore
+```bash
+./razer-brightness.sh restore
+```
+
+The installation commands above enable the KDE autostart entry automatically.
+It runs once per user login, and the `restore` action provides a 10-second
+delay before each attempt. To disable automatic restoration, remove the
+autostart entry:
+
+```bash
+rm -- "$HOME/.config/autostart/razer-restore.desktop"
 ```
 
 ## Configuration
@@ -102,15 +147,16 @@ autostart or another user-session mechanism:
 | `XDG_CACHE_HOME` | `~/.cache` | Parent directory for the brightness state file |
 | State file | `$XDG_CACHE_HOME/razer_brightness` | Last brightness level used by the script |
 | Brightness levels | `100, 66, 33, 1, 0` | Ordered levels used by `up` and `down` |
+| `RAZER_DPI_POLL_INTERVAL` | `0.25` seconds | DPI monitor polling interval; must be positive |
 
 The state file contains only the numeric brightness level. Keep the cache
 directory private if your system has unusual shared-home permissions.
 
 The OSD icon name is `razer-cobra`. To use the included SVG, install it into
 your local KDE icon theme according to KDE's icon-theme conventions, or use
-the default mouse icon by changing the icon name in both scripts. The SVG is
-an original project asset; replace it with an appropriately licensed asset if
-you redistribute a modified version.
+the default mouse icon by changing the icon name in both scripts. The included
+monochrome outline SVG was drawn specifically for this project and contains no
+third-party artwork or copied brand logo.
 
 ## Troubleshooting
 
@@ -129,8 +175,11 @@ you redistribute a modified version.
   into a local icon theme or change the icon name as described above.
 
 The monitor reports dependency, device, reconnection, and OSD failures to
-stderr or the systemd journal. Brightness command failures return a non-zero
-exit status.
+stderr or the systemd journal. To change its polling interval, create a user
+service drop-in with `systemctl --user edit razer-dpi-monitor.service` and add
+`[Service]` followed by, for example,
+`Environment=RAZER_DPI_POLL_INTERVAL=0.5`. Brightness command failures return
+a non-zero exit status.
 
 ## Uninstall
 
@@ -138,19 +187,45 @@ Disable and remove the user service, then remove the per-user installed copy:
 
 ```bash
 systemctl --user disable --now razer-dpi-monitor.service
-rm "$HOME/.config/systemd/user/razer-dpi-monitor.service"
-rm -rf "$HOME/.local/lib/razer-cobra-linux"
+SERVICE_FILE="$HOME/.config/systemd/user/razer-dpi-monitor.service"
+AUTOSTART_FILE="$HOME/.config/autostart/razer-restore.desktop"
+INSTALL_DIR="$HOME/.local/lib/razer-cobra-linux"
+BRIGHTNESS_COMMAND="$HOME/.local/bin/razer-brightness.sh"
+UP_DESKTOP="$HOME/.local/share/applications/razer-brightness-up.desktop"
+DOWN_DESKTOP="$HOME/.local/share/applications/razer-brightness-down.desktop"
+LEGACY_UP_DESKTOP="$HOME/.local/share/applications/net.local.razer-brightness.sh.desktop"
+LEGACY_DOWN_DESKTOP="$HOME/.local/share/applications/net.local.razer-brightness.sh-2.desktop"
+if [ -f "$SERVICE_FILE" ]; then
+  rm -- "$SERVICE_FILE"
+fi
+if [ -f "$AUTOSTART_FILE" ]; then
+  rm -- "$AUTOSTART_FILE"
+fi
+for file in "$BRIGHTNESS_COMMAND" "$UP_DESKTOP" "$DOWN_DESKTOP" \
+  "$LEGACY_UP_DESKTOP" "$LEGACY_DOWN_DESKTOP"; do
+  if [ -f "$file" ]; then
+    rm -- "$file"
+  fi
+done
+if [ -d "$INSTALL_DIR" ] && [ "$INSTALL_DIR" != "$HOME" ] && [ "$INSTALL_DIR" != "/" ]; then
+  find "$INSTALL_DIR" -xdev -mindepth 1 -delete
+  rmdir -- "$INSTALL_DIR"
+fi
 systemctl --user daemon-reload
 ```
 
 Remove the repository clone and, if desired, the state file:
 
 ```bash
-rm "$XDG_CACHE_HOME/razer_brightness"
+STATE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/razer_brightness"
+if [ -f "$STATE_FILE" ]; then
+  rm -- "$STATE_FILE"
+fi
 ```
 
 Only remove the state file if `XDG_CACHE_HOME` is set to the same value used
-when the tool was run.
+when the tool was run. The guarded commands above avoid recursive deletion and
+do not follow directory mount points.
 
 ## License and third-party notes
 

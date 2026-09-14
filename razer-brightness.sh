@@ -58,7 +58,7 @@ case "$ACTION" in
         NEW=100
         for i in {1..3}; do
             sleep 10
-            if ! "$CLI_PATH" -o brightness -p "$NEW"; then
+            if ! "$CLI_PATH" -z logo -o brightness -p "$NEW"; then
                 echo "Error: failed to set brightness during restore attempt $i." >&2
                 exit 1
             fi
@@ -76,7 +76,7 @@ case "$ACTION" in
         ;;
 esac
 
-if ! "$CLI_PATH" -o brightness -p "$NEW"; then
+if ! "$CLI_PATH" -z logo -o brightness -p "$NEW"; then
     echo "Error: failed to set brightness to $NEW%." >&2
     exit 1
 fi

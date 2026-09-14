@@ -2,6 +2,8 @@
 import time
 import subprocess
 import sys
+import shutil
+import os
 
 try:
     from openrazer.client import DeviceManager
@@ -9,9 +11,23 @@ except ImportError:
     print("Error: OpenRazer Python library not found. Please install python-openrazer.", file=sys.stderr)
     sys.exit(1)
 
+QDBUS_PATH = shutil.which("qdbus6")
+if QDBUS_PATH is None:
+    print("Error: qdbus6 not found. Install KDE Plasma's Qt D-Bus tools.", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    POLL_INTERVAL = float(os.environ.get("RAZER_DPI_POLL_INTERVAL", "0.25"))
+except ValueError:
+    print("Error: RAZER_DPI_POLL_INTERVAL must be a positive number.", file=sys.stderr)
+    sys.exit(1)
+if POLL_INTERVAL <= 0:
+    print("Error: RAZER_DPI_POLL_INTERVAL must be a positive number.", file=sys.stderr)
+    sys.exit(1)
+
 def show_osd(text):
     result = subprocess.run([
-        "qdbus6", "org.kde.plasmashell", "/org/kde/osdService",
+        QDBUS_PATH, "org.kde.plasmashell", "/org/kde/osdService",
         "org.kde.osdService.showText", "razer-cobra", text
     ], capture_output=True, text=True)
     if result.returncode != 0:
@@ -46,13 +62,12 @@ def main():
                 show_osd(f"Razer Cobra: {cur_dpi} DPI")
                 last_dpi = cur_dpi
 
-        except Exception as error:
+        except (AttributeError, IndexError, OSError, RuntimeError) as error:
             print(f"Warning: OpenRazer device unavailable; retrying: {error}", file=sys.stderr)
             mouse = None
             time.sleep(2)
 
-        # Low-overhead polling interval (250ms is smooth and CPU-friendly)
-        time.sleep(0.25)
+        time.sleep(POLL_INTERVAL)
 
 if __name__ == "__main__":
     main()
