@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Razer Cobra Restore Brightness
+Comment=Restore Razer Cobra mouse brightness to 100% after login
+Exec=/bin/bash -c "exec \\$HOME/.local/bin/razer-brightness.sh restore"
+Terminal=false
+Type=Application
+Icon=razer-cobra

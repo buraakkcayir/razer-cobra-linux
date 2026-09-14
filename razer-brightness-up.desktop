@@ -1,0 +1,7 @@
+[Desktop Entry]
+Exec=/bin/bash -c "exec \\$HOME/.local/bin/razer-brightness.sh up"
+Name=Razer Cobra Brightness Up
+NoDisplay=true
+StartupNotify=false
+Type=Application
+X-KDE-GlobalAccel-CommandShortcut=true
